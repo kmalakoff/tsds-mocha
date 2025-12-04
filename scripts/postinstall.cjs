@@ -6,7 +6,7 @@ var unixify = require('unixify');
 var resolve = require('resolve');
 var Queue = require('queue-cb');
 
-var MOCHAS = ['mocha-compat-esm', 'mocha'];
+var MOCHAS = ['mocha-no-node-protocol', 'mocha'];
 
 function patch(name, callback) {
   try {

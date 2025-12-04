@@ -43,7 +43,7 @@ function patch(name, callback) {
 
       // Use regex with global flag to replace all occurrences (tryImportAndRequire and requireModule)
       var find = /if \(path\.extname\(file\) === '\.mjs'\)/g;
-      var replace = "if (/\\.(mjs|[cm]?ts|tsx)$/.test(file))";
+      var replace = 'if (/\\.(mjs|[cm]?ts|tsx)$/.test(file))';
 
       fs.readFile(filePath, 'utf8', (err, contents) => {
         if (err) return callback(err);

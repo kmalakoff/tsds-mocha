@@ -34,7 +34,7 @@
   ],
   "scripts": {
     "build": "tsds build",
-    "format": "biome check --write --unsafe && biome check --config-path biome.es5.json --write --unsafe scripts/",
+    "format": "tsds format",
     "postinstall": "node ./scripts/postinstall.cjs",
     "prepublishOnly": "tsds validate",
     "test": "tsds test:node --no-timeouts",
@@ -58,7 +58,6 @@
     "unixify": "*"
   },
   "devDependencies": {
-    "@biomejs/biome": "*",
     "@types/mocha": "*",
     "@types/node": "*",
     "mocha-compat": "*",
@@ -68,6 +67,7 @@
     "short-hash": "*",
     "ts-dev-stack": "*",
     "ts-swc-loaders": "*",
+    "tsds-config": "*",
     "tsds-lib-test": "*"
   },
   "engines": {

@@ -29,6 +29,13 @@ export const mochaBin = selectMochaBin(major, hasRequireModule, hasRegisterHooks
 
 export default function command(args: string[], options: CommandOptions, callback: CommandCallback) {
   const cwd: string = (options.cwd as string) || process.cwd();
+  const opts = getopts(args, { stopEarly: true, alias: { 'dry-run': 'd' }, boolean: ['dry-run'] });
+  const filteredArgs = args.filter((arg) => arg !== '--dry-run' && arg !== '-d');
+
+  if (opts['dry-run']) {
+    console.log('Dry-run: would run tests with mocha');
+    return callback();
+  }
 
   link(cwd, installPath(options), (err, restore) => {
     if (err) return callback(err);
@@ -37,11 +44,10 @@ export default function command(args: string[], options: CommandOptions, callbac
       const loader = resolveBin('ts-swc-loaders', 'ts-swc');
       const mocha = resolveBin(mochaBin);
 
-      const { _ } = getopts(args, { stopEarly: true, alias: {} });
       const spawnArgs = major === 12 ? ['node'] : []; // TODO: troubleshoot node 12 and mocha
       Array.prototype.push.apply(spawnArgs, [mocha, '--watch-extensions', 'ts,tsx']);
-      Array.prototype.push.apply(spawnArgs, args);
-      if (_.length === 0) Array.prototype.push.apply(spawnArgs, ['test/**/*.test.*']);
+      Array.prototype.push.apply(spawnArgs, filteredArgs);
+      if (opts._.length === 0) Array.prototype.push.apply(spawnArgs, ['test/**/*.test.*']);
 
       const queue = new Queue(1);
       queue.defer(spawn.bind(null, loader, spawnArgs, options));

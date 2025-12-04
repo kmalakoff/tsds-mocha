@@ -6,7 +6,7 @@ var unixify = require('unixify');
 var resolve = require('resolve');
 var Queue = require('queue-cb');
 
-var MOCHAS = ['mocha-no-node-protocol', 'mocha'];
+var MOCHAS = ['mocha-no-node-protocol', 'mocha-no-register-hooks', 'mocha'];
 
 function patch(name, callback) {
   try {
@@ -33,29 +33,30 @@ function patch(name, callback) {
       });
     });
     // Patch esm-utils.js to force import() for TypeScript extensions
-    // Node 20.19+ has require(esm) which bypasses ESM loader hooks when using require()
-    // This ensures ESM loader hooks (like ts-swc-loaders) are invoked for .ts files
+    // Only needed for mocha-no-register-hooks (Node 20.17+ with require(esm) but no registerHooks)
+    // Node 22.15+ has registerHooks which properly supports require() with hooks
     // Related mocha issue for .mjs: https://github.com/mochajs/mocha/issues/5425
     // PR that fixed .mjs but not .ts: https://github.com/mochajs/mocha/pull/5429
-    queue.defer((callback) => {
-      var filePath = path.join(patchPath, 'lib', 'nodejs', 'esm-utils.js');
-      if (!fs.existsSync(filePath)) return callback(); // skip if file doesn't exist (older mocha)
+    name === 'mocha-no-register-hooks' &&
+      queue.defer((callback) => {
+        var filePath = path.join(patchPath, 'lib', 'nodejs', 'esm-utils.js');
+        if (!fs.existsSync(filePath)) return callback(); // skip if file doesn't exist (older mocha)
 
-      // Use regex with global flag to replace all occurrences (tryImportAndRequire and requireModule)
-      var find = /if \(path\.extname\(file\) === '\.mjs'\)/g;
-      var replace = 'if (/\\.(mjs|[cm]?ts|tsx)$/.test(file))';
+        // Use regex with global flag to replace all occurrences (tryImportAndRequire and requireModule)
+        var find = /if \(path\.extname\(file\) === '\.mjs'\)/g;
+        var replace = 'if (/\\.(mjs|[cm]?ts|tsx)$/.test(file))';
 
-      fs.readFile(filePath, 'utf8', (err, contents) => {
-        if (err) return callback(err);
-        var newContents = contents.replace(find, replace);
-        if (contents === newContents) return callback(); // no change
-        fs.writeFile(filePath, newContents, 'utf8', (err) => {
+        fs.readFile(filePath, 'utf8', (err, contents) => {
           if (err) return callback(err);
-          console.log(`Patched esm-utils in: ${filePath}`);
-          callback();
+          var newContents = contents.replace(find, replace);
+          if (contents === newContents) return callback(); // no change
+          fs.writeFile(filePath, newContents, 'utf8', (err) => {
+            if (err) return callback(err);
+            console.log(`Patched esm-utils in: ${filePath}`);
+            callback();
+          });
         });
       });
-    });
     name === 'mocha' ||
       queue.defer((callback) => {
         var filePath = path.join(patchPath, 'package.json');

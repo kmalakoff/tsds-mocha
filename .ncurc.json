@@ -1,4 +1,4 @@
 {
   "upgrade": true,
-  "reject": ["assert", "mocha-compat-esm", "mocha"]
+  "reject": ["assert", "mocha-no-node-protocol"]
 }

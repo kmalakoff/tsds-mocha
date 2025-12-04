@@ -7,7 +7,7 @@ import type { CommandCallback, CommandOptions } from 'tsds-lib';
 import { installPath } from 'tsds-lib';
 
 const major = +process.versions.node.split('.')[0];
-const mochaBin = major < 12 ? 'mocha-compat' : major < 14 ? 'mocha-compat-esm' : 'mocha';
+const mochaBin = major < 12 ? 'mocha-compat' : major < 14 ? 'mocha-no-node-protocol' : 'mocha';
 
 export default function command(args: string[], options: CommandOptions, callback: CommandCallback) {
   const cwd: string = (options.cwd as string) || process.cwd();

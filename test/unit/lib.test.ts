@@ -57,7 +57,7 @@ function addTests(repo) {
       it('test:node', (done) => {
         mocha([], { cwd: dest }, (err?: Error): undefined => {
           if (err) {
-            done(err.message);
+            done(err);
             return;
           }
           done();

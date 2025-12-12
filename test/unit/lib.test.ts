@@ -1,4 +1,4 @@
-// remove NODE_OPTIONS from ts-dev-stack
+// remove NODE_OPTIONS to not interfere with tests
 delete process.env.NODE_OPTIONS;
 
 import spawn from 'cross-spawn-cb';
@@ -57,7 +57,7 @@ function addTests(repo) {
       it('test:node', (done) => {
         mocha([], { cwd: dest }, (err?: Error): undefined => {
           if (err) {
-            done(err.message);
+            done(err);
             return;
           }
           done();

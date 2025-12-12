@@ -1,9 +1,9 @@
-import exit from 'exit-compat';
-import fs from 'fs';
-import path from 'path';
-import Queue from 'queue-cb';
-import resolve from 'resolve';
-import unixify from 'unixify';
+const exit = require('exit-compat');
+const fs = require('fs');
+const path = require('path');
+const Queue = require('queue-cb');
+const resolve = require('resolve');
+const unixify = require('unixify');
 
 const MOCHAS = ['mocha-no-node-protocol', 'mocha-no-register-hooks', 'mocha'];
 

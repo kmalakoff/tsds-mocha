@@ -42,7 +42,7 @@ export default function command(args: string[], options: CommandOptions, callbac
 
     try {
       const loader = resolveBin('ts-swc-loaders', 'ts-swc');
-      const mocha = resolveBin(mochaBin, 'mocha');
+      const mocha = resolveBin(mochaBin, mochaBin === 'mocha-compat' ? 'mocha-compat' : 'mocha');
 
       const spawnArgs = major === 12 ? ['node'] : []; // TODO: troubleshoot node 12 and mocha
       Array.prototype.push.apply(spawnArgs, [mocha, '--watch-extensions', 'ts,tsx']);

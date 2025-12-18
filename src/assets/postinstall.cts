@@ -9,7 +9,7 @@ const MOCHAS = ['mocha-no-node-protocol', 'mocha-no-register-hooks', 'mocha'];
 
 type Callback = (err?: Error | null) => void;
 
-function patch(name: string, callback: Callback): void {
+function patch(name: string, callback: Callback) {
   try {
     const mochaCompat = path.dirname(resolve.sync('mocha-compat/package.json'));
     const sourcePath = fs.realpathSync(path.join(mochaCompat, 'vendor', 'glob'));

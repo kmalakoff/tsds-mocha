@@ -22,11 +22,11 @@ function patch(name: string, callback: Callback) {
       const find = "require('glob')";
       const replace = `require('${unixify(path.relative(path.dirname(filePath), sourcePath))}')`;
 
-      fs.readFile(filePath, 'utf8', (err, contents) => {
+      fs.readFile(filePath, 'utf8', (err: Error | null, contents: string) => {
         if (err) return cb(err);
         const newContents = contents.replace(find, replace);
         if (contents === newContents) return cb(); // no change
-        fs.writeFile(filePath, newContents, 'utf8', (writeErr) => {
+        fs.writeFile(filePath, newContents, 'utf8', (writeErr: Error | null) => {
           if (writeErr) return cb(writeErr);
           console.log(`Patched glob in: ${filePath}`);
           cb();
@@ -47,11 +47,11 @@ function patch(name: string, callback: Callback) {
         const find = /if \(path\.extname\(file\) === '\.mjs'\)/g;
         const replace = 'if (/\\.(mjs|[cm]?ts|tsx)$/.test(file))';
 
-        fs.readFile(filePath, 'utf8', (err, contents) => {
+        fs.readFile(filePath, 'utf8', (err: Error | null, contents: string) => {
           if (err) return cb(err);
           const newContents = contents.replace(find, replace);
           if (contents === newContents) return cb(); // no change
-          fs.writeFile(filePath, newContents, 'utf8', (writeErr) => {
+          fs.writeFile(filePath, newContents, 'utf8', (writeErr: Error | null) => {
             if (writeErr) return cb(writeErr);
             console.log(`Patched esm-utils in: ${filePath}`);
             cb();
@@ -65,7 +65,7 @@ function patch(name: string, callback: Callback) {
         const pkg = require(filePath);
         if (pkg.bin[name] !== undefined) return cb();
         pkg.bin[name] = pkg.bin.mocha;
-        fs.writeFile(filePath, JSON.stringify(pkg, null, 2), 'utf8', (writeErr) => {
+        fs.writeFile(filePath, JSON.stringify(pkg, null, 2), 'utf8', (writeErr: Error | null) => {
           if (writeErr) return cb(writeErr);
           console.log(`Patched bin in: ${filePath}`);
           cb();
@@ -86,9 +86,8 @@ MOCHAS.forEach((name) => {
 queue.await((err: Error | null) => {
   if (err) {
     console.log(`postinstall failed. Error: ${err.message}`);
-    exit(-1);
-  } else {
-    console.log('postinstall succeeded');
-    exit(0);
+    return exit(-1);
   }
+  console.log('postinstall succeeded');
+  exit(0);
 });

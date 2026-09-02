@@ -46,7 +46,7 @@
     "cross-spawn-cb": "*",
     "getopts-compat": "*",
     "link-unlink": "*",
-    "mocha": "*",
+    "mocha": "11.7.5",
     "mocha-compat": "*",
     "mocha-no-node-protocol": "npm:mocha@11.1.0",
     "queue-cb": "*",

@@ -29,14 +29,11 @@
   "source": "src/index.ts",
   "types": "dist/cjs/index.d.ts",
   "files": [
-    "dist",
-    "assets"
+    "dist"
   ],
   "scripts": {
     "build": "tsds build",
-    "build:assets": "tsds validate && mkdir -p assets && cp -R dist/cjs/assets/*.cjs assets/",
     "format": "tsds format",
-    "postinstall": "node assets/postinstall.cjs",
     "prepublishOnly": "tsds validate",
     "test": "tsds test:node --no-timeouts",
     "test:engines": "nvu engines tsds test:node --no-timeouts",
@@ -45,20 +42,17 @@
   "dependencies": {
     "assert": "1.5.0",
     "cross-spawn-cb": "^3.1.0",
-    "exit-compat": "^1.0.4",
     "getopts-compat": "^2.2.5",
     "link-unlink": "^1.1.0",
-    "mocha": "^11.7.5",
+    "mocha": "^12.0.0",
+    "mocha-cjs": "npm:mocha@10.8.2",
     "mocha-compat": "^3.6.3",
-    "mocha-no-node-protocol": "npm:mocha@11.1.0",
-    "mocha-no-register-hooks": "npm:mocha@11.7.5",
     "queue-cb": "^1.6.3",
     "regenerator-runtime": "^0.14.1",
     "resolve": "^1.22.11",
     "resolve-bin-sync": "^1.0.12",
-    "ts-swc-loaders": "^2.5.4",
-    "tsds-lib": "^1.21.1",
-    "unixify": "^1.0.0"
+    "ts-swc-loaders": "^2.7.0",
+    "tsds-lib": "^1.21.1"
   },
   "devDependencies": {
     "@types/mocha": "*",

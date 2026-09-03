@@ -1,31 +1,24 @@
 import spawn from 'cross-spawn-cb';
 import getopts from 'getopts-compat';
 import { link, unlink } from 'link-unlink';
-import Module from 'module';
 import Queue from 'queue-cb';
 import resolveBin from 'resolve-bin-sync';
 import type { CommandCallback, CommandOptions } from 'tsds-lib';
 import { installPath } from 'tsds-lib';
 
-/**
- * Select the appropriate mocha binary based on Node version and available features.
- * Exported for testing - allows unit tests to verify the selection logic.
- */
-export function selectMochaBin(major: number, hasRequireModule: boolean, hasRegisterHooks: boolean): string {
+// The aliases are a version-routing table: every slot is pinned except 'mocha', which floats.
+// process.features.require_module goes unflagged at the same Node versions mocha 12's engines start (20.19 / 22.12).
+export function selectMochaBin(major: number, hasRequireModule: boolean): string {
   if (major < 12) return 'mocha-compat';
-  if (major < 14) return 'mocha-no-node-protocol';
-  // Node 20.17+ has require(esm) but no registerHooks - needs patched mocha
-  // Node 22.15+ has registerHooks which properly supports require() with hooks
-  if (hasRequireModule && !hasRegisterHooks) return 'mocha-no-register-hooks';
+  if (!hasRequireModule) return 'mocha-cjs';
   return 'mocha';
 }
 
 const major = +process.versions.node.split('.')[0];
 const hasRequireModule = !!process.features?.require_module;
-const hasRegisterHooks = typeof (Module as { registerHooks?: unknown }).registerHooks === 'function';
 
 /** The mocha binary selected for the current Node version */
-export const mochaBin = selectMochaBin(major, hasRequireModule, hasRegisterHooks);
+export const mochaBin = selectMochaBin(major, hasRequireModule);
 
 export default function command(args: string[], options: CommandOptions, callback: CommandCallback) {
   const cwd: string = (options.cwd as string) || process.cwd();
@@ -45,8 +38,7 @@ export default function command(args: string[], options: CommandOptions, callbac
       const loader = resolveBin('ts-swc-loaders', 'ts-swc');
       const mocha = resolveBin(mochaBin, mochaBin === 'mocha-compat' ? 'mocha-compat' : 'mocha');
 
-      const spawnArgs = major === 12 ? ['node'] : []; // TODO: troubleshoot node 12 and mocha
-      Array.prototype.push.apply(spawnArgs, [mocha, '--watch-extensions', 'ts,tsx']);
+      const spawnArgs = [mocha, '--watch-extensions', 'ts,tsx'];
       Array.prototype.push.apply(spawnArgs, filteredArgs);
       if (opts._.length === 0) Array.prototype.push.apply(spawnArgs, ['test/**/*.test.*']);
 

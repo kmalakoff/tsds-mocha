@@ -104,15 +104,19 @@ describe('selected mocha packages', () => {
     assert.equal(typeof pkg.engines.node, 'string');
   });
 
-  it('resolves the two pinned slots to the mocha-compat fork at their pinned versions, each with its own bin name', () => {
-    const pkg3 = JSON.parse(fs.readFileSync(resolveSync('mocha-compat-3/package.json'), 'utf8'));
-    assert.equal(pkg3.name, 'mocha-compat');
-    assert.equal(pkg3.version, '3.6.4');
-    assert.ok(pkg3.bin['mocha-compat-3']);
+  it('resolves each pinned slot to the mocha-compat fork at exactly the version its alias pins, with its own bin name', () => {
+    // Reading the pin from package.json rather than repeating it keeps the spec honest across
+    // version bumps: what it proves is that an exact alias resolves to exactly that version.
+    const deps = JSON.parse(fs.readFileSync(resolveSync('tsds-mocha/package.json'), 'utf8')).dependencies;
 
-    const pkg10 = JSON.parse(fs.readFileSync(resolveSync('mocha-compat-10/package.json'), 'utf8'));
-    assert.equal(pkg10.name, 'mocha-compat');
-    assert.equal(pkg10.version, '10.8.2');
-    assert.ok(pkg10.bin['mocha-compat-10']);
+    for (const slot of ['mocha-compat-3', 'mocha-compat-10']) {
+      const pinned = deps[slot].replace('npm:mocha-compat@', '');
+      assert.ok(/^\d+\.\d+\.\d+$/.test(pinned), `${slot} must pin an exact version, found "${deps[slot]}"`);
+
+      const pkg = JSON.parse(fs.readFileSync(resolveSync(`${slot}/package.json`), 'utf8'));
+      assert.equal(pkg.name, 'mocha-compat');
+      assert.equal(pkg.version, pinned, `${slot} pins ${pinned} but resolved ${pkg.version}`);
+      assert.ok(pkg.bin[slot], `${slot} should declare a bin named ${slot}`);
+    }
   });
 });

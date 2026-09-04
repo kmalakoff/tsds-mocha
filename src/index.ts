@@ -1,1 +1,1 @@
-export { default } from './command.ts';
+export { default, mochaBin } from './command.ts';

@@ -1,4 +1,4 @@
 {
   "upgrade": true,
-  "reject": ["assert", "mocha-cjs"]
+  "reject": ["assert", "mocha-compat-3", "mocha-compat-10"]
 }

@@ -1,1 +1,1 @@
-ignores: ["tsds-mocha", "node-version-use", "ts-dev-stack", "mocha", "mocha-compat", "mocha-cjs", "assert", "ts-swc-loaders", "regenerator-runtime", "resolve-bin-sync", "module-link-unlink", "short-hash", "tsds-lib-test"]
+ignores: ["tsds-mocha", "node-version-use", "ts-dev-stack", "mocha", "mocha-compat-3", "mocha-compat-10", "assert", "ts-swc-loaders", "regenerator-runtime", "resolve-bin-sync", "module-link-unlink", "short-hash", "tsds-lib-test"]

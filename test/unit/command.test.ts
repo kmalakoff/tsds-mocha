@@ -1,5 +1,6 @@
 import assert from 'assert';
 import fs from 'fs';
+import Module from 'module';
 import * as resolve from 'resolve';
 
 import { mochaBin, selectMochaBin } from '../../src/command.ts';
@@ -15,24 +16,31 @@ function floorMajorMinor(range: string): [number, number] {
 describe('selectMochaBin', () => {
   describe('Node version selection', () => {
     it('returns mocha-compat-3 below Node 12.17', () => {
-      assert.equal(selectMochaBin(10, 0, false), 'mocha-compat-3');
-      assert.equal(selectMochaBin(11, 0, false), 'mocha-compat-3');
-      assert.equal(selectMochaBin(0, 10, false), 'mocha-compat-3');
-      assert.equal(selectMochaBin(12, 16, false), 'mocha-compat-3');
+      assert.equal(selectMochaBin(10, 0, false, false), 'mocha-compat-3');
+      assert.equal(selectMochaBin(11, 0, false, false), 'mocha-compat-3');
+      assert.equal(selectMochaBin(0, 10, false, false), 'mocha-compat-3');
+      assert.equal(selectMochaBin(12, 16, false, false), 'mocha-compat-3');
     });
 
     it('returns mocha-compat-10 for Node 12.17+ without require_module', () => {
-      assert.equal(selectMochaBin(12, 17, false), 'mocha-compat-10');
-      assert.equal(selectMochaBin(14, 0, false), 'mocha-compat-10');
-      assert.equal(selectMochaBin(16, 0, false), 'mocha-compat-10');
-      assert.equal(selectMochaBin(18, 0, false), 'mocha-compat-10');
-      assert.equal(selectMochaBin(20, 0, false), 'mocha-compat-10');
+      assert.equal(selectMochaBin(12, 17, false, false), 'mocha-compat-10');
+      assert.equal(selectMochaBin(14, 0, false, false), 'mocha-compat-10');
+      assert.equal(selectMochaBin(16, 0, false, false), 'mocha-compat-10');
+      assert.equal(selectMochaBin(18, 0, false, false), 'mocha-compat-10');
+      assert.equal(selectMochaBin(20, 0, false, false), 'mocha-compat-10');
     });
 
-    it('returns mocha for Node with require_module', () => {
-      assert.equal(selectMochaBin(20, 19, true), 'mocha');
-      assert.equal(selectMochaBin(22, 12, true), 'mocha');
-      assert.equal(selectMochaBin(24, 0, true), 'mocha');
+    it('returns mocha-compat-10 for require_module without registerHooks', () => {
+      assert.equal(selectMochaBin(20, 19, true, false), 'mocha-compat-10');
+      assert.equal(selectMochaBin(20, 20, true, false), 'mocha-compat-10');
+      assert.equal(selectMochaBin(22, 12, true, false), 'mocha-compat-10');
+      assert.equal(selectMochaBin(22, 14, true, false), 'mocha-compat-10');
+    });
+
+    it('returns mocha once registerHooks joins require_module', () => {
+      assert.equal(selectMochaBin(22, 15, true, true), 'mocha');
+      assert.equal(selectMochaBin(24, 0, true, true), 'mocha');
+      assert.equal(selectMochaBin(26, 0, true, true), 'mocha');
     });
   });
 });
@@ -52,34 +60,37 @@ describe('mochaBin (runtime export)', () => {
     const major = +majorStr;
     const minor = +minorStr;
     const hasRequireModule = !!process.features?.require_module;
+    const hasRegisterHooks = typeof (Module as { registerHooks?: unknown }).registerHooks === 'function';
 
-    const expected = selectMochaBin(major, minor, hasRequireModule);
-    assert.equal(mochaBin, expected, `Runtime mochaBin should match selectMochaBin(${major}, ${minor}, ${hasRequireModule})`);
+    const expected = selectMochaBin(major, minor, hasRequireModule, hasRegisterHooks);
+    assert.equal(mochaBin, expected, `Runtime mochaBin should match selectMochaBin(${major}, ${minor}, ${hasRequireModule}, ${hasRegisterHooks})`);
   });
 });
 
 describe('selected mocha packages', () => {
   // The alias set is a version-routing table: every slot is pinned except 'mocha', which floats to
   // latest. A pinned slot that ships ESM-only is unparseable on the Nodes routed to it.
-  it('routes Node without require_module to a CommonJS mocha', () => {
+  it('routes Node that cannot transform the require() path to a CommonJS mocha', () => {
     const cases = [
-      { major: 12, minor: 17, hasRequireModule: false },
-      { major: 14, minor: 0, hasRequireModule: false },
-      { major: 16, minor: 0, hasRequireModule: false },
-      { major: 18, minor: 0, hasRequireModule: false },
-      { major: 20, minor: 0, hasRequireModule: false },
+      { major: 12, minor: 17, hasRequireModule: false, hasRegisterHooks: false },
+      { major: 14, minor: 0, hasRequireModule: false, hasRegisterHooks: false },
+      { major: 16, minor: 0, hasRequireModule: false, hasRegisterHooks: false },
+      { major: 18, minor: 0, hasRequireModule: false, hasRegisterHooks: false },
+      { major: 20, minor: 0, hasRequireModule: false, hasRegisterHooks: false },
+      { major: 20, minor: 19, hasRequireModule: true, hasRegisterHooks: false },
+      { major: 22, minor: 12, hasRequireModule: true, hasRegisterHooks: false },
     ];
 
     for (let i = 0; i < cases.length; i++) {
-      const { major, minor, hasRequireModule } = cases[i];
-      const bin = selectMochaBin(major, minor, hasRequireModule);
+      const { major, minor, hasRequireModule, hasRegisterHooks } = cases[i];
+      const bin = selectMochaBin(major, minor, hasRequireModule, hasRegisterHooks);
       const pkg = JSON.parse(fs.readFileSync(resolveSync(`${bin}/package.json`), 'utf8'));
       assert.notEqual(pkg.type, 'module', `Node ${major}.${minor} routes to ${bin}@${pkg.version}, which is ESM-only and cannot be parsed there`);
     }
   });
 
   it('routes below Node 12.17 to a mocha-compat-3 with no ESM type and an engines floor at or below 12.17', () => {
-    const bin = selectMochaBin(12, 16, false);
+    const bin = selectMochaBin(12, 16, false, false);
     assert.equal(bin, 'mocha-compat-3');
     const pkg = JSON.parse(fs.readFileSync(resolveSync(`${bin}/package.json`), 'utf8'));
     assert.notEqual(pkg.type, 'module');
@@ -89,7 +100,7 @@ describe('selected mocha packages', () => {
   });
 
   it('routes Node 12.17 to mocha-compat-10 with an engines floor at or below 12.17', () => {
-    const bin = selectMochaBin(12, 17, false);
+    const bin = selectMochaBin(12, 17, false, false);
     assert.equal(bin, 'mocha-compat-10');
     const pkg = JSON.parse(fs.readFileSync(resolveSync(`${bin}/package.json`), 'utf8'));
     assert.notEqual(pkg.type, 'module');
@@ -99,7 +110,7 @@ describe('selected mocha packages', () => {
   });
 
   it('resolves the floating mocha slot to a package with an engines.node string', () => {
-    const bin = selectMochaBin(22, 12, true);
+    const bin = selectMochaBin(22, 15, true, true);
     const pkg = JSON.parse(fs.readFileSync(resolveSync(`${bin}/package.json`), 'utf8'));
     assert.equal(typeof pkg.engines.node, 'string');
   });

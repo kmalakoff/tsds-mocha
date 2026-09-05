@@ -8,18 +8,21 @@ import { installPath } from 'tsds-lib';
 
 // Every slot except 'mocha' is pinned exactly and listed in .ncurc.json reject; only 'mocha' floats.
 // Each slot name doubles as its npm alias and bin name, so resolution is resolveBin(mochaBin, mochaBin).
-export function selectMochaBin(major: number, minor: number): 'mocha-compat-3' | 'mocha-compat-10' {
+export function selectMochaBin(major: number, minor: number, hasRequireModule: boolean): 'mocha-compat-3' | 'mocha-compat-10' | 'mocha' {
   if (major < 12 || (major === 12 && minor < 17)) return 'mocha-compat-3';
-  // mocha 12 require()s test files, where the only transpiler is Node's stripper, which erases
-  // types without reading a tsconfig. mocha 10 import()s, leaving swc and that tsconfig in charge.
-  return 'mocha-compat-10';
+  // mocha 12 require()s test files and its engines are exactly Node's require(esm) range, which
+  // ts-swc-loaders transpiles with swc from 2.7.3, the floor this package declares.
+  if (!hasRequireModule) return 'mocha-compat-10';
+  return 'mocha';
 }
 
 const [majorStr, minorStr] = process.versions.node.split('.');
 const major = +majorStr;
 const minor = +minorStr;
+const hasRequireModule = !!process.features?.require_module;
+
 /** The mocha binary selected for the current Node version */
-export const mochaBin = selectMochaBin(major, minor);
+export const mochaBin = selectMochaBin(major, minor, hasRequireModule);
 
 export default function command(args: string[], options: CommandOptions, callback: CommandCallback) {
   const cwd: string = (options.cwd as string) || process.cwd();

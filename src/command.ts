@@ -1,7 +1,6 @@
 import spawn from 'cross-spawn-cb';
 import getopts from 'getopts-compat';
 import { link, unlink } from 'link-unlink';
-import Module from 'module';
 import Queue from 'queue-cb';
 import resolveBin from 'resolve-bin-sync';
 import type { CommandCallback, CommandOptions } from 'tsds-lib';
@@ -9,22 +8,18 @@ import { installPath } from 'tsds-lib';
 
 // Every slot except 'mocha' is pinned exactly and listed in .ncurc.json reject; only 'mocha' floats.
 // Each slot name doubles as its npm alias and bin name, so resolution is resolveBin(mochaBin, mochaBin).
-export function selectMochaBin(major: number, minor: number, hasRequireModule: boolean, hasRegisterHooks: boolean): 'mocha-compat-3' | 'mocha-compat-10' | 'mocha' {
+export function selectMochaBin(major: number, minor: number): 'mocha-compat-3' | 'mocha-compat-10' {
   if (major < 12 || (major === 12 && minor < 17)) return 'mocha-compat-3';
-  // mocha 12 require()s test files wherever require_module is on; ts-swc-loaders can only transform
-  // that path where Module.registerHooks is too (22.15+). Between the two, mocha 10 import()s instead.
-  if (!hasRequireModule || !hasRegisterHooks) return 'mocha-compat-10';
-  return 'mocha';
+  // mocha 12 require()s test files, where the only transpiler is Node's stripper, which erases
+  // types without reading a tsconfig. mocha 10 import()s, leaving swc and that tsconfig in charge.
+  return 'mocha-compat-10';
 }
 
 const [majorStr, minorStr] = process.versions.node.split('.');
 const major = +majorStr;
 const minor = +minorStr;
-const hasRequireModule = !!process.features?.require_module;
-const hasRegisterHooks = typeof (Module as { registerHooks?: unknown }).registerHooks === 'function';
-
 /** The mocha binary selected for the current Node version */
-export const mochaBin = selectMochaBin(major, minor, hasRequireModule, hasRegisterHooks);
+export const mochaBin = selectMochaBin(major, minor);
 
 export default function command(args: string[], options: CommandOptions, callback: CommandCallback) {
   const cwd: string = (options.cwd as string) || process.cwd();

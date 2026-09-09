@@ -3,26 +3,25 @@ import getopts from 'getopts-compat';
 import { link, unlink } from 'link-unlink';
 import Queue from 'queue-cb';
 import resolveBin from 'resolve-bin-sync';
+import { supportsRequireTypeScript } from 'ts-swc-loaders/capabilities';
 import type { CommandCallback, CommandOptions } from 'tsds-lib';
 import { installPath } from 'tsds-lib';
 
 // Every slot except 'mocha' is pinned exactly and listed in .ncurc.json reject; only 'mocha' floats.
 // Each slot name doubles as its npm alias and bin name, so resolution is resolveBin(mochaBin, mochaBin).
-export function selectMochaBin(major: number, minor: number, hasRequireModule: boolean): 'mocha-compat-3' | 'mocha-compat-10' | 'mocha' {
+export function selectMochaBin(major: number, minor: number, loaderSupportsRequireTypeScript: boolean): 'mocha-compat-3' | 'mocha-compat-10' | 'mocha' {
   if (major < 12 || (major === 12 && minor < 17)) return 'mocha-compat-3';
-  // mocha 12 require()s test files and its engines are exactly Node's require(esm) range, which
-  // ts-swc-loaders transpiles with swc from 2.7.3, the floor this package declares.
-  if (!hasRequireModule) return 'mocha-compat-10';
-  return 'mocha';
+  // Mocha 12 loads test files through require(); use the loader capability because Node's
+  // require_module flag says nothing about whether the loader can transform TypeScript there.
+  return loaderSupportsRequireTypeScript ? 'mocha' : 'mocha-compat-10';
 }
 
 const [majorStr, minorStr] = process.versions.node.split('.');
 const major = +majorStr;
 const minor = +minorStr;
-const hasRequireModule = !!process.features?.require_module;
 
 /** The mocha binary selected for the current Node version */
-export const mochaBin = selectMochaBin(major, minor, hasRequireModule);
+export const mochaBin = selectMochaBin(major, minor, supportsRequireTypeScript);
 
 export default function command(args: string[], options: CommandOptions, callback: CommandCallback) {
   const cwd: string = (options.cwd as string) || process.cwd();

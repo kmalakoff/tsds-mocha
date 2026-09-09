@@ -20,6 +20,13 @@ describe('transpile', () => {
     });
   });
 
+  it('preserves ESM module identity', (done) => {
+    mocha(['test/esm-identity.test-test.ts'], { cwd: fixture, stdio: 'inherit' }, (err?: Error | null): void => {
+      assert.ifError(err);
+      done();
+    });
+  });
+
   it('transpiles a type annotation via the import() fallback', (done) => {
     mocha(['test/annotation.test-test.ts'], { cwd: fixture, stdio: 'inherit' }, (err?: Error | null): void => {
       assert.ifError(err);

@@ -23,6 +23,14 @@ const minor = +minorStr;
 /** The mocha binary selected for the current Node version */
 export const mochaBin = selectMochaBin(major, minor, supportsRequireTypeScript);
 
+function commandError(failures: unknown[]): Error | undefined {
+  if (failures.length === 0) return undefined;
+  if (failures.length === 1 && failures[0] instanceof Error) return failures[0];
+  const error: Error & { errors?: unknown[] } = new Error('Mocha command or restoration failed');
+  error.errors = failures;
+  return error;
+}
+
 export default function command(args: string[], options: CommandOptions, callback: CommandCallback) {
   const cwd: string = (options.cwd as string) || process.cwd();
   const opts = getopts(args, { stopEarly: true, alias: { 'dry-run': 'd' }, boolean: ['dry-run'] });
@@ -34,8 +42,30 @@ export default function command(args: string[], options: CommandOptions, callbac
   }
 
   link(cwd, installPath(options), (err, restore) => {
-    if (err) return callback(err);
+    if (err !== undefined && err !== null) return callback(commandError([err]));
     if (!restore) return callback(new Error('link did not return restore path'));
+    const acquiredTarget = restore;
+
+    let cleanupStarted = false;
+    function finish(operationFailed: boolean, operationError: unknown): void {
+      if (cleanupStarted) return;
+      cleanupStarted = true;
+      let completed = false;
+      function complete(cleanupFailed: boolean, cleanupError: unknown): void {
+        if (completed) return;
+        completed = true;
+        const failures: unknown[] = [];
+        if (operationFailed) failures.push(operationError);
+        if (cleanupFailed) failures.push(cleanupError);
+        callback(commandError(failures));
+      }
+      try {
+        unlink(acquiredTarget, (error: unknown) => complete(error !== undefined && error !== null, error));
+      } catch (error: unknown) {
+        if (completed) throw error;
+        complete(true, error);
+      }
+    }
 
     try {
       const loader = resolveBin('ts-swc-loaders', 'ts-swc');
@@ -48,11 +78,20 @@ export default function command(args: string[], options: CommandOptions, callbac
       if (opts._.length === 0) Array.prototype.push.apply(spawnArgs, ['test/**/*.test.*']);
 
       const queue = new Queue(1);
-      queue.defer(spawn.bind(null, loader, spawnArgs, options));
-      queue.await((err) => unlink(restore, callback.bind(null, err)));
-    } catch (err) {
-      console.log(err);
-      callback(err instanceof Error ? err : new Error(String(err)));
+      let operationFailed = false;
+      let operationError: unknown;
+      queue.defer((cb) =>
+        spawn(loader, spawnArgs, options, (error: unknown) => {
+          operationFailed = error !== undefined && error !== null;
+          operationError = error;
+          // This one-task queue owns completion; retain errors before its truthy classification.
+          cb();
+        })
+      );
+      queue.await(() => finish(operationFailed, operationError));
+    } catch (error: unknown) {
+      if (cleanupStarted) throw error;
+      finish(true, error);
     }
   });
 }

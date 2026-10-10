@@ -57,6 +57,7 @@
   "devDependencies": {
     "@types/mocha": "*",
     "@types/node": "*",
+    "fs-remove-compat": "1.1.0",
     "module-link-unlink": "^1.2.0",
     "node-version-use": "*",
     "short-hash": "^1.0.0",
@@ -69,6 +70,7 @@
   },
   "allowScripts": {
     "core-js-pure": true,
-    "@swc/core": true
+    "@swc/core": true,
+    "fsevents@2.3.3": false
   }
 }

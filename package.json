@@ -57,7 +57,7 @@
   "devDependencies": {
     "@types/mocha": "*",
     "@types/node": "*",
-    "fs-remove-compat": "1.1.0",
+    "fs-remove-compat": "1.1.1",
     "module-link-unlink": "^1.2.0",
     "node-version-use": "*",
     "short-hash": "^1.0.0",
